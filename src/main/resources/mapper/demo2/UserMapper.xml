@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.vince.demo2.mapper.UserMapper">
+
+  <!-- select用来定义一个查询操作
+       id：操作的具体标识
+       resultType：指定查询结果保存的类型
+   -->
+  <select id="selectUser" resultType="myUser">
+        select * from t_user
+    </select>
+</mapper>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.vince.demo1.mapper.UserMapper">
+    <insert id="insertUser" parameterType="com.vince.demo1.pojo.User">
+        INSERT INTO
+         t_user (id,name,age,salary,sex)
+        VALUES
+         (#{id},#{name},#{age},#{salary},#{sex})
+    </insert>
+
+    <update id="updateUser" parameterType="com.vince.demo1.pojo.User">
+        UPDATE
+          t_user
+        SET
+          name = #{name},
+          age = #{age},
+          salary = #{salary},
+          sex = #{sex}
+        WHERE
+          id = #{id}
+    </update>
+
+    <update id="deleteUser" parameterType="java.lang.Long">
+        DELETE FROM
+          t_user
+        WHERE
+          id = #{id}
+    </update>
+
+    <select id="selectUser" resultType="com.vince.demo1.pojo.User">
+        SELECT
+          *
+        FROM
+         t_user
+    </select>
+</mapper>
