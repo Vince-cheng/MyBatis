@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+  <!-- 导入JDBC配置 -->
+  <properties resource="jdbc.properties"/>
+  <!-- 包扫描路径 -->
+  <settings><!-- 全局配置信息 -->
+    <setting name="cacheEnabled" value="true"/>
+  </settings>
+  <typeAliases>
+    <!-- 配置别名信息，在映射配置文件中可以直接使用Customer这个别名
+        代替com.vince.demo.domain.Customer这个类 -->
+    <typeAlias type="com.vince.demo.domain.Customer" alias="Customer"/>
+    <typeAlias type="com.vince.demo.domain.Address" alias="Address"/>
+    <typeAlias type="com.vince.demo.domain.Order" alias="Order"/>
+    <typeAlias type="com.vince.demo.domain.OrderItem" alias="OrderItem"/>
+    <typeAlias type="com.vince.demo.domain.Product" alias="Product"/>
+  </typeAliases>
+  <!-- 环境配置，可以配置多个环境 -->
+  <environments default="prod">
+    <!--
+        environment用来对某个环境进行配置
+        id：环境标识，唯一
+     -->
+    <environment id="prod">
+      <!-- 事务管理器工厂配置 -->
+      <transactionManager type="jdbc"/>
+      <!-- 数据源工厂配置，使用工厂来创建数据源 -->
+      <dataSource type="pooled">
+        <property name="driver" value="${jdbc.driver}"/>
+        <property name="url"
+                  value="${jdbc.url}"/>
+        <property name="username" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.password}"/>
+      </dataSource>
+    </environment>
+  </environments>
+  <mappers>
+    <mapper resource="mapper/CustomerMapper.xml"/>
+    <mapper resource="mapper/AddressMapper.xml"/>
+    <mapper resource="mapper/OrderItemMapper.xml"/>
+    <mapper resource="mapper/OrderMapper.xml"/>
+    <mapper resource="mapper/ProductMapper.xml"/>
+  </mappers>
+</configuration>
