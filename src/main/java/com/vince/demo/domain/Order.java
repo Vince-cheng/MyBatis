@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -19,7 +20,7 @@ public class Order {
   private Customer customer;
   private Address deliveryAddress;
   private List<OrderItem> orderItems = new ArrayList<>();
-  private long createTime;
+  private Date createTime;
   private BigDecimal totalPrice;
 
 }

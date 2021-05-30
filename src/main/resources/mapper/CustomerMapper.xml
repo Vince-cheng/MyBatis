@@ -4,18 +4,18 @@
 <mapper namespace="com.vince.demo.dao.CustomerMapper">
   <!-- 定义映射规则 -->
   <resultMap id="customerSimpleMap" type="Customer">
-    <!--  主键映射 -->
+    <!--  主键映射 -->
     <id property="id" column="id"/>
-    <!--  属性映射 -->
+    <!--  属性映射 -->
     <result property="name" column="name"/>
     <result property="phone" column="phone"/>
   </resultMap>
 
   <!-- 定义映射规则 -->
   <resultMap id="customerMap" type="Customer">
-    <!--  主键映射 -->
+    <!--  主键映射 -->
     <id property="id" column="id"/>
-    <!--  属性映射 -->
+    <!--  属性映射 -->
     <result property="name" column="name"/>
     <result property="phone" column="phone"/>
     <!-- 映射addresses集合，<collection>标签用于映射集合类的属性，实现一对多的关联关系 -->
@@ -29,15 +29,15 @@
 
   <!-- 定义select语句，CustomerMapper接口中的find()方法会执行该SQL，查询结果通过customerSimpleMap这个映射生成Customer对象-->
   <select id="find" resultMap="customerSimpleMap">
-        SELECT * FROM t_customer WHERE id = #{id:INTEGER}
+        SELECT * FROM t_customer WHERE id = #{id:INTEGER}
   </select>
 
   <!-- 定义select语句，CustomerMapper接口中的findWithAddress()方法会执行该SQL，查询结果通过customerMap这个映射生成Customer对象-->
   <select id="findWithAddress" resultMap="customerMap">
         SELECT c.*,a.id as address_id, a.* FROM t_customer as c join t_address as a
-        on c.id = a.customer_id
-        WHERE c.id = #{id:INTEGER}
-  </select>
+        on c.id = a.customer_id
+        WHERE c.id = #{id:INTEGER}
+  </select>
 
   <!-- CustomerMapper接口中的findByOrderId()方法会执行该SQL，查询结果通过customerSimpleMap这个映射生成Customer对象-->
   <select id="findByOrderId" resultMap="customerSimpleMap">

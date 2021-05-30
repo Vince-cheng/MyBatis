@@ -135,8 +135,7 @@ public class TypeAliasRegistry {
 
   public void registerAliases(String packageName, Class<?> superType) {
     ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<>();
-    // 查找某个包下的父类为 superType 的类。从调用栈来看，这里的superType = Object.class，所以 ResolverUtil 将查找所有的类。
-    // 查找完成后，查找结果将会被缓存到内部集合中。
+    // 查找指定包下所有的 superType 类型
     resolverUtil.find(new ResolverUtil.IsA(superType), packageName);
     // 获取查找结果
     Set<Class<? extends Class<?>>> typeSet = resolverUtil.getClasses();
@@ -145,15 +144,16 @@ public class TypeAliasRegistry {
       // Skip also inner classes. See issue #6
       // 忽略匿名类，接口，内部类
       if (!type.isAnonymousClass() && !type.isInterface() && !type.isMemberClass()) {
-        // 为类型注册别名
+        // 扫描类中的 @Alias 注解，为类型注册别名
         registerAlias(type);
       }
     }
   }
 
   public void registerAlias(Class<?> type) {
-    // 获取全路径类名的简称
+    // 获取全路径类名的简称，其中不会包含包名
     String alias = type.getSimpleName();
+    // 获取类中的 @Alias 注解
     Alias aliasAnnotation = type.getAnnotation(Alias.class);
     if (aliasAnnotation != null) {
       // 从注解中取出别名
@@ -174,7 +174,7 @@ public class TypeAliasRegistry {
     if (typeAliases.containsKey(key) && typeAliases.get(key) != null && !typeAliases.get(key).equals(value)) {
       throw new TypeException("The alias '" + alias + "' is already mapped to the value '" + typeAliases.get(key).getName() + "'.");
     }
-    // 缓存别名到类型映射
+    // 在typeAliases集合中记录别名与类之间的映射关系
     typeAliases.put(key, value);
   }
 

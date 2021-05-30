@@ -6,7 +6,8 @@
   <!-- 导入JDBC配置 -->
   <properties resource="jdbc.properties"/>
   <!-- 包扫描路径 -->
-  <settings><!-- 全局配置信息 -->
+  <settings>
+    <!-- 全局配置信息 -->
     <setting name="cacheEnabled" value="true"/>
   </settings>
   <typeAliases>
@@ -37,6 +38,8 @@
       </dataSource>
     </environment>
   </environments>
+
+  <!-- 配置映射配置文件的位置 -->
   <mappers>
     <mapper resource="mapper/CustomerMapper.xml"/>
     <mapper resource="mapper/AddressMapper.xml"/>
