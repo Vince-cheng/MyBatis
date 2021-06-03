@@ -52,9 +52,11 @@ public class UnpooledDataSource implements DataSource {
   private Integer defaultNetworkTimeout;
 
   static {
+    // 从 DriverManager 中读取 JDBC 驱动
     Enumeration<Driver> drivers = DriverManager.getDrivers();
     while (drivers.hasMoreElements()) {
       Driver driver = drivers.nextElement();
+      // 将 DriverManager 中的全部 JDBC 驱动记录到 registeredDrivers 集合
       registeredDrivers.put(driver.getClass().getName(), driver);
     }
   }
@@ -217,9 +219,15 @@ public class UnpooledDataSource implements DataSource {
   }
 
   private Connection doGetConnection(Properties properties) throws SQLException {
+    // 初始化数据库驱动
     initializeDriver();
+
+    // 创建数据库连接
     Connection connection = DriverManager.getConnection(url, properties);
+
+    // 配置数据库连接
     configureConnection(connection);
+
     return connection;
   }
 

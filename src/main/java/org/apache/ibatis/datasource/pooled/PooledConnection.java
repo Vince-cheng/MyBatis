@@ -233,6 +233,7 @@ class PooledConnection implements InvocationHandler {
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     String methodName = method.getName();
     if (CLOSE.hashCode() == methodName.hashCode() && CLOSE.equals(methodName)) {
+      // 如果调用 close() 方法，并没有直接关闭底层连接，而是将其归还给关联的连接池
       dataSource.pushConnection(this);
       return null;
     }
@@ -240,8 +241,10 @@ class PooledConnection implements InvocationHandler {
       if (!Object.class.equals(method.getDeclaringClass())) {
         // issue #579 toString() should never fail
         // throw an SQLException instead of a Runtime
+        // 只要不是 Object 的方法，都需要检测当前 PooledConnection 是否可用
         checkConnection();
       }
+      // 调用 realConnection 的对应方法
       return method.invoke(realConnection, args);
     } catch (Throwable t) {
       throw ExceptionUtil.unwrapThrowable(t);
