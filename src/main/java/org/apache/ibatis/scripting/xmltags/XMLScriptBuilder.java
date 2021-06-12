@@ -67,7 +67,7 @@ public class XMLScriptBuilder extends BaseBuilder {
     // 解析 SQL 语句节点
     MixedSqlNode rootSqlNode = parseDynamicTags(context);
     SqlSource sqlSource;
-    // 根据 isDynamic 状态创建不同的 SqlSource
+    // 根据该 SQL 是否为动态 SQL，创建不同的 SqlSource 实现
     if (isDynamic) {
       sqlSource = new DynamicSqlSource(configuration, rootSqlNode);
     } else {
@@ -77,19 +77,20 @@ public class XMLScriptBuilder extends BaseBuilder {
   }
 
   protected MixedSqlNode parseDynamicTags(XNode node) {
+    // 解析后的 SqlNode 结果集合
     List<SqlNode> contents = new ArrayList<>();
     NodeList children = node.getNode().getChildNodes();
-    // 遍历子节点
+    // 获取 SQL 标签下的所有节点，包括标签节点和文本节点
     for (int i = 0; i < children.getLength(); i++) {
       XNode child = node.newXNode(children.item(i));
       if (child.getNode().getNodeType() == Node.CDATA_SECTION_NODE || child.getNode().getNodeType() == Node.TEXT_NODE) {
-        // 获取文本内容
+        //  处理文本节点，也就是 SQL 语句
         String data = child.getStringBody("");
         TextSqlNode textSqlNode = new TextSqlNode(data);
-        // 若文本中包含 ${} 占位符，也被认为是动态节点
+        // 解析 SQL 语句，如果含有未解析的 "${}" 占位符，则为动态 SQL
         if (textSqlNode.isDynamic()) {
           contents.add(textSqlNode);
-          // 设置 isDynamic 为 true
+          // 标记为动态 SQL 语句
           isDynamic = true;
         } else {
           // 创建 StaticTextSqlNode
@@ -98,22 +99,23 @@ public class XMLScriptBuilder extends BaseBuilder {
       }
 
       // child 节点是 ELEMENT_NODE 类型，比如 <if>、<where> 等
-      else if (child.getNode().getNodeType() == Node.ELEMENT_NODE) { // issue #628
-        // 获取节点名称，比如 if、where、trim 等
+      else if (child.getNode().getNodeType() == Node.ELEMENT_NODE) {
+        // 如果解析到一个子标签，那么一定是动态 SQL，比如 if、where、trim 等
         String nodeName = child.getNode().getNodeName();
-        // 根据节点名称获取 NodeHandler
+        // 根据子标签名称获取 NodeHandler
         NodeHandler handler = nodeHandlerMap.get(nodeName);
         // 如果 handler 为空，表明当前节点对与 MyBatis 来说，是未知节点。MyBatis 无法处理这种节点，故抛出异常
         if (handler == null) {
           throw new BuilderException("Unknown element <" + nodeName + "> in SQL statement.");
         }
 
-        // 处理 child 节点，生成相应的 SqlNode
+        // 处理动态 SQL 语句，并将解析得到的 SqlNode 对象记录到 contents 集合中
         handler.handleNode(child, contents);
-        // 设置 isDynamic 为 true
+        // 标记为动态 SQL 语句
         isDynamic = true;
       }
     }
+    // 解析后的 SqlNode 集合将会被封装成 MixedSqlNode 返回
     return new MixedSqlNode(contents);
   }
 
@@ -207,8 +209,11 @@ public class XMLScriptBuilder extends BaseBuilder {
 
     @Override
     public void handleNode(XNode nodeToHandle, List<SqlNode> targetContents) {
+      // 通过 parseDynamicTags() 方法，解析 <if> 标签下嵌套的动态 SQL
       MixedSqlNode mixedSqlNode = parseDynamicTags(nodeToHandle);
+      // 获取 <if> 标签判断分支的条件
       String test = nodeToHandle.getStringAttribute("test");
+      // 创建 IfNode 对象(也是 SqlNode 接口的实现)，并将其保存下来
       IfSqlNode ifSqlNode = new IfSqlNode(mixedSqlNode, test);
       targetContents.add(ifSqlNode);
     }

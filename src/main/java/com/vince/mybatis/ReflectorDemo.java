@@ -1,4 +1,4 @@
-package com.vince.reflector;
+package com.vince.mybatis;
 
 import org.apache.ibatis.reflection.Reflector;
 
@@ -9,7 +9,8 @@ import org.apache.ibatis.reflection.Reflector;
 public class ReflectorDemo {
 
   public static void main(String[] args) {
-    Reflector reflector = new Reflector(String.class);
+    Reflector reflector = new Reflector(Reflector.class);
+    System.out.println(reflector.getType());
     System.out.println(reflector.getType());
   }
 }

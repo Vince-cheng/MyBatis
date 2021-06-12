@@ -90,10 +90,13 @@ public class BlockingCache implements Cache {
   }
 
   private void acquireLock(Object key) {
+    // 根据 key 在 locks 集合中获取 ReentrantLock
     Lock lock = getLockForKey(key);
+    // 根据 timeout 的值，决定阻塞超时时间
     if (timeout > 0) {
       try {
         boolean acquired = lock.tryLock(timeout, TimeUnit.MILLISECONDS);
+        // 超时未获取到锁，则抛出异常
         if (!acquired) {
           throw new CacheException("Couldn't get a lock in " + timeout + " for the key " +  key + " at the cache " + delegate.getId());
         }
@@ -101,6 +104,7 @@ public class BlockingCache implements Cache {
         throw new CacheException("Got interrupted while trying to acquire lock for key " + key, e);
       }
     } else {
+      // 死等
       lock.lock();
     }
   }

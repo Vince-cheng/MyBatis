@@ -58,36 +58,35 @@ public class MapperMethod {
 
   public Object execute(SqlSession sqlSession, Object[] args) {
     Object result;
-    // 根据 SQL 类型执行相应的数据库操作
+    // 判断 SQL 语句的类型
     switch (command.getType()) {
       case INSERT: {
-        // 对用户传入的参数进行转换
+        // 通过ParamNameResolver.getNamedParams()方法将方法的实参与参数的名称关联起来
         Object param = method.convertArgsToSqlCommandParam(args);
-        // 执行插入操作，rowCountResult 方法用于处理返回值
+        // 通过 SqlSession.insert() 方法执行 INSERT 语句，在 rowCountResult() 方法中，会根据方法的返回值类型对结果进行转换
         result = rowCountResult(sqlSession.insert(command.getName(), param));
         break;
       }
       case UPDATE: {
         Object param = method.convertArgsToSqlCommandParam(args);
-        // 执行更新操作
+        // 通过 SqlSession.update() 方法执行 UPDATE 语句
         result = rowCountResult(sqlSession.update(command.getName(), param));
         break;
       }
       case DELETE: {
         Object param = method.convertArgsToSqlCommandParam(args);
-        // 执行删除操作
+        /// 通过 SqlSession.delete() 方法执行 DELETE 语句
         result = rowCountResult(sqlSession.delete(command.getName(), param));
         break;
       }
       case SELECT:
         // 根据目标方法的返回类型进行相应的查询操作
         if (method.returnsVoid() && method.hasResultHandler()) {
-          // 如果方法返回值为 void，但参数列表中包含 ResultHandler，表明使用者想通过 ResultHandler 的方式获取查询结果，
-          // 而非通过返回值获取结果
+          // 如果方法返回值为 void，且参数中包含了 ResultHandler 类型的实参，则查询的结果集将会由 ResultHandler 对象进行处理
           executeWithResultHandler(sqlSession, args);
           result = null;
         } else if (method.returnsMany()) {
-          // 执行查询操作，并返回多个结果
+          // executeForMany() 方法处理返回值为集合或数组的场景
           result = executeForMany(sqlSession, args);
         } else if (method.returnsMap()) {
           // 执行查询操作，并将结果封装在 Map 中返回
@@ -238,10 +237,14 @@ public class MapperMethod {
     private final SqlCommandType type;
 
     public SqlCommand(Configuration configuration, Class<?> mapperInterface, Method method) {
+      // 获取 Mapper 接口中对应的方法名称
       final String methodName = method.getName();
+
+      // 获取 Mapper 接口的类型
       final Class<?> declaringClass = method.getDeclaringClass();
 
-      // 解析 MappedStatement
+      // 将 Mapper 接口名称和方法名称拼接起来作为 SQL 语句唯一标识，到 Configuration 这个全局配置对象中查找 SQL 语句
+      // MappedStatement 对象就是 Mapper.xml 配置文件中一条 SQL 语句解析之后得到的对象
       MappedStatement ms = resolveMappedStatement(mapperInterface, methodName, declaringClass,
           configuration);
 
@@ -258,8 +261,9 @@ public class MapperMethod {
               + mapperInterface.getName() + "." + methodName);
         }
       } else {
-        // 设置 name 和 type 变量
+        // 记录 SQL 语句唯一标识
         name = ms.getId();
+        // 记录 SQL 语句的操作类型
         type = ms.getSqlCommandType();
         if (type == SqlCommandType.UNKNOWN) {
           throw new BindingException("Unknown execution method for: " + name);
@@ -277,12 +281,19 @@ public class MapperMethod {
 
     private MappedStatement resolveMappedStatement(Class<?> mapperInterface, String methodName,
         Class<?> declaringClass, Configuration configuration) {
+      // 将 Mapper 接口名称和方法名称拼接起来作为 SQL 语句唯一标识
       String statementId = mapperInterface.getName() + "." + methodName;
+
+      // 检测 Configuration 中是否包含相应的 MappedStatement 对象
       if (configuration.hasStatement(statementId)) {
         return configuration.getMappedStatement(statementId);
       } else if (mapperInterface.equals(declaringClass)) {
+        // 如果方法就定义在当前接口中，则证明没有对应的 SQL 语句，返回 null
         return null;
       }
+
+      // 如果当前检查的 Mapper 接口(mapperInterface)中不是定义该方法的接口(declaringClass)
+      // 则会从 mapperInterface 开始，沿着继承关系向上查找递归每个接口，查找该方法对应的 MappedStatement 对象
       for (Class<?> superInterface : mapperInterface.getInterfaces()) {
         if (declaringClass.isAssignableFrom(superInterface)) {
           MappedStatement ms = resolveMappedStatement(superInterface, methodName,
@@ -310,7 +321,7 @@ public class MapperMethod {
     private final ParamNameResolver paramNameResolver;
 
     public MethodSignature(Configuration configuration, Class<?> mapperInterface, Method method) {
-      // 通过反射解析方法返回类型
+      // 通过 TypeParameterResolver 工具类解析方法的返回值类型，初始化 returnType 字段值
       Type resolvedReturnType = TypeParameterResolver.resolveReturnType(method, mapperInterface);
       if (resolvedReturnType instanceof Class<?>) {
         this.returnType = (Class<?>) resolvedReturnType;
@@ -320,21 +331,23 @@ public class MapperMethod {
         this.returnType = method.getReturnType();
       }
 
-      // 检测返回值类型是否是 void、集合或数组、Cursor、Map 等
+      // 根据返回值类型，初始化 returnsVoid、returnsMany、returnsCursor、 returnsMap、returnsOptional 这五个字段
       this.returnsVoid = void.class.equals(this.returnType);
       this.returnsMany = configuration.getObjectFactory().isCollection(this.returnType) || this.returnType.isArray();
       this.returnsCursor = Cursor.class.equals(this.returnType);
       this.returnsOptional = Optional.class.equals(this.returnType);
 
-      // 解析 @MapKey 注解，获取注解内容
+      // 如果返回值为 Map 类型，则从方法的 @MapKey 注解中获取 Map 中为 key 的字段名称
       this.mapKey = getMapKey(method);
       this.returnsMap = this.mapKey != null;
 
       // 获取 RowBounds 参数在参数列表中的位置，如果参数列表中包含多个 RowBounds 参数，此方法会抛出异常
       this.rowBoundsIndex = getUniqueParamIndex(method, RowBounds.class);
+
       // 获取 ResultHandler 参数在参数列表中的位置
       this.resultHandlerIndex = getUniqueParamIndex(method, ResultHandler.class);
-      // 解析参数列表
+
+      // 创建 ParamNameResolver 工具对象，在创建 ParamNameResolver 对象的时候，会解析方法的参数列表信息
       this.paramNameResolver = new ParamNameResolver(configuration, method);
     }
 

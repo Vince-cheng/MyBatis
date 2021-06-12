@@ -486,8 +486,7 @@ public class XMLMapperBuilder extends BaseBuilder {
     String jdbcType = context.getStringAttribute("jdbcType");
     String nestedSelect = context.getStringAttribute("select");
 
-    // 解析 resultMap 属性，该属性出现在 <association> 和 <collection> 节点中
-    // 若这两个节点不包含 resultMap 属性，则调用 processNestedResultMappings 方法解析嵌套 resultMap
+    //  如果 <association> 标签没有指定 resultMap 属性，那么就是匿名嵌套映射，需要通过 processNestedResultMappings() 方法解析该匿名的嵌套映射
     String nestedResultMap = context.getStringAttribute("resultMap",
         processNestedResultMappings(context, Collections.emptyList(), resultType));
 
@@ -503,7 +502,7 @@ public class XMLMapperBuilder extends BaseBuilder {
     Class<? extends TypeHandler<?>> typeHandlerClass = resolveClass(typeHandler);
     JdbcType jdbcTypeEnum = resolveJdbcType(jdbcType);
 
-    // 构建 ResultMapping 对象
+    // 根据上面解析到的属性值，创建 ResultMapping 对象
     return builderAssistant.buildResultMapping(resultType, property, column, javaTypeClass, jdbcTypeEnum, nestedSelect, nestedResultMap, notNullColumn, columnPrefix, typeHandlerClass, flags, resultSet, foreignColumn, lazy);
   }
 

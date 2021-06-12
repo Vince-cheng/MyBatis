@@ -36,10 +36,30 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
   private static final long serialVersionUID = -6424540398559729838L;
   private static final int ALLOWED_MODES = MethodHandles.Lookup.PRIVATE | MethodHandles.Lookup.PROTECTED
       | MethodHandles.Lookup.PACKAGE | MethodHandles.Lookup.PUBLIC;
+
+  /**
+   * 针对 JDK 8 中的特殊处理，该字段指向了 MethodHandles.Lookup 的构造方法
+   */
   private static final Constructor<Lookup> lookupConstructor;
+
+  /**
+   * 除了 JDK 8 之外的其他 JDK 版本会使用该字段，该字段指向 MethodHandles.privateLookupIn() 方法
+   */
   private static final Method privateLookupInMethod;
+
+  /**
+   * 记录了当前 MapperProxy 关联的 SqlSession 对象
+   */
   private final SqlSession sqlSession;
+
+  /**
+   * Mapper 接口类型，也是当前 MapperProxy 关联的代理对象实现的接口类型
+   */
   private final Class<T> mapperInterface;
+
+  /**
+   * 用于缓存 MapperMethodInvoker 对象的集合
+   */
   private final Map<Method, MapperMethod> methodCache;
 
   public MapperProxy(SqlSession sqlSession, Class<T> mapperInterface, Map<Method, MapperMethod> methodCache) {
@@ -80,10 +100,19 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
       // 如果方法是定义在 Object 类中的，则直接调用
       if (Object.class.equals(method.getDeclaringClass())) {
         return method.invoke(this, args);
-      } else if (method.isDefault()) {
+      }
+      // 针对 default 方法的处理
+      else if (method.isDefault()) {
+
+        // 这里根据 JDK 版本的不同，获取方法对应的 MethodHandle 的方式也有所不同
         if (privateLookupInMethod == null) {
+
+          // 在 JDK 8 中使用的是 lookupConstructor 字段
           return invokeDefaultMethodJava8(proxy, method, args);
+
         } else {
+
+          // 在 JDK 9 中使用的是 privateLookupInMethod 字段
           return invokeDefaultMethodJava9(proxy, method, args);
         }
       }

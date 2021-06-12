@@ -137,7 +137,7 @@ public class MetaClass {
     // 属性分词器，用于解析属性名
     PropertyTokenizer prop = new PropertyTokenizer(name);
 
-    // hasNext 返回 true，则表明 name 是一个复合属性，后面会进行分析
+    // hasNext 返回 true，则表明 name 是一个复合属性
     if (prop.hasNext()) {
       // 调用 reflector 的 hasSetter 方法
       if (reflector.hasSetter(prop.getName())) {

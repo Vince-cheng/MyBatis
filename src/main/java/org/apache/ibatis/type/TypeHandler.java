@@ -37,7 +37,7 @@ public interface TypeHandler<T> {
   void setParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType) throws SQLException;
 
   /**
-   * 从ResultSet中获取数据时会使用getResult()方法，其中会将读取到的数据由Java类型转换成JdbcType类型
+   * 从 ResultSet 中获取数据时会使用 getResult() 方法，其中会将读取到的数据由 Java 类型转换成 JdbcType 类型
    *
    * @param rs         ResultSet
    * @param columnName 列名称
@@ -46,8 +46,25 @@ public interface TypeHandler<T> {
    */
   T getResult(ResultSet rs, String columnName) throws SQLException;
 
+  /**
+   * 通过下标的方式
+   *
+   * @param rs          ResultSet
+   * @param columnIndex 列下标
+   * @return JdbcType
+   * @throws SQLException sql异常
+   */
   T getResult(ResultSet rs, int columnIndex) throws SQLException;
 
+
+  /**
+   * 调用存储过程核函数以及处理输出参数的方法
+   *
+   * @param cs          CallableStatement
+   * @param columnIndex 列下标
+   * @return JdbcType
+   * @throws SQLException sql异常
+   */
   T getResult(CallableStatement cs, int columnIndex) throws SQLException;
 
 }

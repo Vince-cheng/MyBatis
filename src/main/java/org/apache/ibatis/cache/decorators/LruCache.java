@@ -47,12 +47,14 @@ public class LruCache implements Cache {
   }
 
   public void setSize(final int size) {
+    // 调用 LinkedHashMap.put() 方法时，会调用 removeEldestEntry() 方法决定是否删除 head 指向的 Entry 数据
     keyMap = new LinkedHashMap<Object, Object>(size, .75F, true) {
       private static final long serialVersionUID = 4267176411845948333L;
 
       @Override
       protected boolean removeEldestEntry(Map.Entry<Object, Object> eldest) {
         boolean tooBig = size() > size;
+        // 已到达缓存上限，更新 eldestKey 字段，并返回 true，LinkedHashMap 会删除该 Key
         if (tooBig) {
           eldestKey = eldest.getKey();
         }
@@ -63,13 +65,17 @@ public class LruCache implements Cache {
 
   @Override
   public void putObject(Object key, Object value) {
+    // 写入缓存数据
     delegate.putObject(key, value);
+    // 将 KV 数据同时写入 keyMap，其中可能触发缓存删除
     cycleKeyList(key);
   }
 
   @Override
   public Object getObject(Object key) {
-    keyMap.get(key); //touch
+    // 修改当前 Key 在 LinkedHashMap 中记录的顺序
+    keyMap.get(key);
+    // 查询缓存数据
     return delegate.getObject(key);
   }
 
@@ -85,8 +91,10 @@ public class LruCache implements Cache {
   }
 
   private void cycleKeyList(Object key) {
+    // 将 KV 数据写入到 keyMap 集合
     keyMap.put(key, key);
     if (eldestKey != null) {
+      // 如果 eldestKey 不为空，则将从底层 Cache 中删除
       delegate.removeObject(eldestKey);
       eldestKey = null;
     }

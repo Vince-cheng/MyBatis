@@ -23,6 +23,12 @@ package org.apache.ibatis.mapping;
  */
 public interface SqlSource {
 
+  /**
+   * 根据 Mapper 文件或注解描述的 SQL 语句，以及传入的实参，返回可执行的 SQL
+   *
+   * @param parameterObject 对象
+   * @return 可执行的 SQL
+   */
   BoundSql getBoundSql(Object parameterObject);
 
 }

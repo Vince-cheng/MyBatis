@@ -51,35 +51,72 @@ import org.apache.ibatis.reflection.property.PropertyNamer;
  */
 public class Reflector {
 
+  /**
+   * 该 Reflector 对象封装的 Class 类型
+   */
   private final Class<?> type;
+
+  /**
+   * 可读属性的名称集合
+   */
   private final String[] readablePropertyNames;
+
+  /**
+   * 可写属性的名称集合
+   */
   private final String[] writablePropertyNames;
+
+
+  /**
+   * 可读、可写属性对应的 getter 方法和 setter 方法集合
+   * key 是属性的名称，value 是一个 Invoker 对象
+   * Invoker 是对 Method 对象的封装
+   */
   private final Map<String, Invoker> setMethods = new HashMap<>();
   private final Map<String, Invoker> getMethods = new HashMap<>();
+
+  /**
+   * 属性对应的 getter 方法返回值以及 setter 方法的参数值类型
+   * key 是属性名称，value 是方法的返回值类型或参数类型
+   */
   private final Map<String, Class<?>> setTypes = new HashMap<>();
   private final Map<String, Class<?>> getTypes = new HashMap<>();
+
+  /**
+   * 默认构造方法
+   */
   private Constructor<?> defaultConstructor;
 
+  /**
+   * 所有属性名称的集合，记录到这个集合中的属性名称都是大写的
+   */
   private Map<String, String> caseInsensitivePropertyMap = new HashMap<>();
 
   public Reflector(Class<?> clazz) {
     type = clazz;
     // 解析目标类的默认构造方法，并赋值给 defaultConstructor 变量
     addDefaultConstructor(clazz);
+
     // 解析 getter 方法，并将解析结果放入 getMethods 中
     addGetMethods(clazz);
+
     // 解析 setter 方法，并将解析结果放入 setMethods 中
     addSetMethods(clazz);
+
     // 解析属性字段，并将解析结果添加到 setMethods 或 getMethods 中
     addFields(clazz);
+
     // 从 getMethods 映射中获取可读属性名数组
     readablePropertyNames = getMethods.keySet().toArray(new String[0]);
+
     // 从 setMethods 映射中获取可写属性名数组
     writablePropertyNames = setMethods.keySet().toArray(new String[0]);
+
     // 将所有属性名的大写形式作为键，属性名作为值，存入到 caseInsensitivePropertyMap 中
     for (String propName : readablePropertyNames) {
       caseInsensitivePropertyMap.put(propName.toUpperCase(Locale.ENGLISH), propName);
     }
+
     for (String propName : writablePropertyNames) {
       caseInsensitivePropertyMap.put(propName.toUpperCase(Locale.ENGLISH), propName);
     }

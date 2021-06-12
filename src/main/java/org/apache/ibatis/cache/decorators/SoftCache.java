@@ -59,23 +59,31 @@ public class SoftCache implements Cache {
 
   @Override
   public void putObject(Object key, Object value) {
+    // 遍历 queueOfGarbageCollectedEntries 集合，清理已被 GC 回收的缓存数据
     removeGarbageCollectedItems();
+    // 将缓存数据写入底层被装饰的 Cache 对象
     delegate.putObject(key, new SoftEntry(key, value, queueOfGarbageCollectedEntries));
   }
 
   @Override
   public Object getObject(Object key) {
     Object result = null;
-    @SuppressWarnings("unchecked") // assumed delegate cache is totally managed by this cache
+    @SuppressWarnings("unchecked")
+    // 从底层被装饰的缓存中查找数据
     SoftReference<Object> softReference = (SoftReference<Object>) delegate.getObject(key);
     if (softReference != null) {
       result = softReference.get();
+
+      // Value 为 null，则已被 GC 回收，直接从缓存删除该 Key
       if (result == null) {
         delegate.removeObject(key);
-      } else {
-        // See #586 (and #335) modifications need more than a read lock
+      }
+      // 未被 GC 回收
+      else {
+        // 将 Value 添加到 hardLinksToAvoidGarbageCollection 集合中，防止被 GC 回收
         synchronized (hardLinksToAvoidGarbageCollection) {
           hardLinksToAvoidGarbageCollection.addFirst(result);
+          // 检查 hardLinksToAvoidGarbageCollection 长度，超过上限，则清理最早添加的 Value
           if (hardLinksToAvoidGarbageCollection.size() > numberOfHardLinks) {
             hardLinksToAvoidGarbageCollection.removeLast();
           }
@@ -102,7 +110,9 @@ public class SoftCache implements Cache {
 
   private void removeGarbageCollectedItems() {
     SoftEntry sv;
+    // 遍历 queueOfGarbageCollectedEntries 集合，其中记录了被 GC 回收的 Key
     while ((sv = (SoftEntry) queueOfGarbageCollectedEntries.poll()) != null) {
+      // 清理被回收的 Key
       delegate.removeObject(sv.key);
     }
   }
@@ -111,7 +121,9 @@ public class SoftCache implements Cache {
     private final Object key;
 
     SoftEntry(Object key, Object value, ReferenceQueue<Object> garbageCollectionQueue) {
+      // 指向 value 的是软引用，并且关联了引用队列
       super(value, garbageCollectionQueue);
+      // 指向 key 的是强引用
       this.key = key;
     }
   }

@@ -23,12 +23,20 @@ import java.lang.reflect.InvocationTargetException;
 public interface Invoker {
 
   /**
-   * 调用底层封装的Method方法或是读写指定的字段
+   * 调用底层封装的 Method 方法或是读写指定的字段
+   *
+   * @param target 目标
+   * @param args   方法集合
+   * @return 反射对象
+   * @throws IllegalAccessException  没有访问权限异常
+   * @throws InvocationTargetException 调用目标异常
    */
   Object invoke(Object target, Object[] args) throws IllegalAccessException, InvocationTargetException;
 
   /**
    * 返回属性的类型
+   *
+   * @return class 类型
    */
   Class<?> getType();
 }

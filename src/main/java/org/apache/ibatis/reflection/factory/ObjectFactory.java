@@ -26,7 +26,10 @@ import java.util.Properties;
 public interface ObjectFactory {
 
   /**
+   * 默认实现
+   * <p>
    * Sets configuration properties.
+   *
    * @param properties configuration properties
    */
   default void setProperties(Properties properties) {
