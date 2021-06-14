@@ -91,14 +91,18 @@ public class ForEachSqlNode implements SqlNode {
 
   private void applyIndex(DynamicContext context, Object o, int i) {
     if (index != null) {
+      // Key 值与 index 属性值指定的变量名称绑定
       context.bind(index, o);
+      // Key值还会与"__frch_" + index 属性值 + "_" + i 这个变量绑定。这里传入的 i 是一个自增序列，由底层的 DynamicContext 统一维护
       context.bind(itemizeItem(index, i), o);
     }
   }
 
   private void applyItem(DynamicContext context, Object o, int i) {
     if (item != null) {
+      // Value 值与 item 属性值指定的变量名称绑定
       context.bind(item, o);
+      // Value 值还会与"__frch_" + item 属性值 + "_" + i 这个变量绑定
       context.bind(itemizeItem(item, i), o);
     }
   }
@@ -150,14 +154,18 @@ public class ForEachSqlNode implements SqlNode {
 
     @Override
     public void appendSql(String sql) {
+      // 创建识别"#{}"的 GenericTokenParser 解析器
       GenericTokenParser parser = new GenericTokenParser("#{", "}", content -> {
+        // 这个 TokenHandler 实现会将 #{i} 替换成 #{__frch_i_0}、#{__frch_i_1}...
         String newContent = content.replaceFirst("^\\s*" + item + "(?![^.,:\\s])", itemizeItem(item, index));
         if (itemIndex != null && newContent.equals(content)) {
+          // 这里会将 #{j} 替换成 #{__frch_j_0}、#{__frch_j_1}...
           newContent = content.replaceFirst("^\\s*" + itemIndex + "(?![^.,:\\s])", itemizeItem(itemIndex, index));
         }
         return "#{" + newContent + "}";
       });
 
+      // 保存解析后的 SQL 片段
       delegate.appendSql(parser.parse(sql));
     }
 

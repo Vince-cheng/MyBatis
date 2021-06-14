@@ -34,11 +34,11 @@ import org.apache.ibatis.reflection.Reflector;
  *      'https://github.com/jkuhnert/ognl/blob/OGNL_3_2_1/src/java/ognl/DefaultMemberAccess.java'>DefaultMemberAccess</a>
  * @see <a href='https://github.com/jkuhnert/ognl/issues/47'>#47 of ognl</a>
  */
-class OgnlMemberAccess implements MemberAccess {
+public class OgnlMemberAccess implements MemberAccess {
 
   private final boolean canControlMemberAccessible;
 
-  OgnlMemberAccess() {
+  public OgnlMemberAccess() {
     this.canControlMemberAccessible = Reflector.canControlMemberAccessible();
   }
 

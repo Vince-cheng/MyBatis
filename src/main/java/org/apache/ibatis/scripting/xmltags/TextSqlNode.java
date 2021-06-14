@@ -47,9 +47,9 @@ public class TextSqlNode implements SqlNode {
 
   @Override
   public boolean apply(DynamicContext context) {
-    // 创建 ${} 占位符解析器
+    // 创建 GenericTokenParser 解析器，这里指定的占位符的起止符号分别是"${"和"}"
     GenericTokenParser parser = createParser(new BindingTokenParser(context, injectionFilter));
-    // 解析 ${} 占位符，并将解析结果添加到 DynamicContext 中
+    // 将解析之后的 SQL 片段追加到 DynamicContext 暂存
     context.appendSql(parser.parse(text));
     return true;
   }
@@ -71,17 +71,21 @@ public class TextSqlNode implements SqlNode {
 
     @Override
     public String handleToken(String content) {
+      // 获取用户提供的实参数据
       Object parameter = context.getBindings().get("_parameter");
       if (parameter == null) {
+        // 通过 value 占位符，也可以查找到 parameter 对象
         context.getBindings().put("value", null);
       } else if (SimpleTypeRegistry.isSimpleType(parameter.getClass())) {
         context.getBindings().put("value", parameter);
       }
-      // 通过 ONGL 从用户传入的参数中获取结果
+      // 通过 Ognl 解析"${}"占位符中的表达式，解析失败的话会返回空字符串
       Object value = OgnlCache.getValue(content, context.getBindings());
-      String srtValue = value == null ? "" : String.valueOf(value); // issue #274 return "" instead of "null"
       // 通过正则表达式检测 srtValue 有效性
+      String srtValue = value == null ? "" : String.valueOf(value); // issue #274 return "" instead of "null"
+      // 对解析后的值进行过滤
       checkInjection(srtValue);
+      // 通过过滤的值才能正常返回
       return srtValue;
     }
 

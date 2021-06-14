@@ -53,9 +53,9 @@ public class TrimSqlNode implements SqlNode {
   public boolean apply(DynamicContext context) {
     // 创建具有过滤功能的 DynamicContext
     FilteredDynamicContext filteredDynamicContext = new FilteredDynamicContext(context);
-    // 解析节点内容
+    // 首先执行子 SqlNode 对象的 apply() 方法完成对应动态 SQL 片段的解析
     boolean result = contents.apply(filteredDynamicContext);
-    // 过滤掉前缀和后缀
+    // 使用 FilteredDynamicContext.applyAll() 方法完成前后缀的处理操作
     filteredDynamicContext.applyAll();
     return result;
   }

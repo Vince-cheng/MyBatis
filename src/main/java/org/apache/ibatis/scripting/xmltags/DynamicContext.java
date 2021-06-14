@@ -45,14 +45,16 @@ public class DynamicContext {
   public DynamicContext(Configuration configuration, Object parameterObject) {
     // 创建 ContextMap
     if (parameterObject != null && !(parameterObject instanceof Map)) {
+      // 对于非 Map 类型的实参，会创建对应的 MetaObject 对象，并封装成 ContextMap 对象
       MetaObject metaObject = configuration.newMetaObject(parameterObject);
       boolean existsTypeHandler = configuration.getTypeHandlerRegistry().hasTypeHandler(parameterObject.getClass());
       bindings = new ContextMap(metaObject, existsTypeHandler);
     } else {
+      // 对于 Map 类型的实参，这里会创建一个空的 ContextMap 对象
       bindings = new ContextMap(null, false);
     }
 
-    // 存放运行时参数 parameterObject 以及 databaseId
+    // 存放运行时参数 parameterObject 以及 databaseId, 这里实参对应的 Key 是 _parameter
     bindings.put(PARAMETER_OBJECT_KEY, parameterObject);
     bindings.put(DATABASE_ID_KEY, configuration.getDatabaseId());
   }
