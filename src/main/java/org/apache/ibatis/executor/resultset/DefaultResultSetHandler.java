@@ -181,41 +181,64 @@ public class DefaultResultSetHandler implements ResultSetHandler {
   public List<Object> handleResultSets(Statement stmt) throws SQLException {
     ErrorContext.instance().activity("handling results").object(mappedStatement.getId());
 
+    // 用于记录每个 ResultSet 映射出来的 Java 对象
     final List<Object> multipleResults = new ArrayList<>();
 
     int resultSetCount = 0;
-    // 获取第一个结果集
+
+    // 从 Statement 中获取第一个 ResultSet，其中对不同的数据库有兼容处理逻辑,
+    // 这里拿到的 ResultSet 会被封装成 ResultSetWrapper 对象返回
     ResultSetWrapper rsw = getFirstResultSet(stmt);
 
+    // 获取这条 SQL 语句关联的全部 ResultMap 规则
+    // 如果一条 SQL 语句能够产生多个 ResultSet， 那么在编写 Mapper.xml 映射文件的时候，
+    // 可以在 SQL 标签的 resultMap 属性中配置多个 <resultMap> 标签的 id，它们之间通过 "," 分隔，实现对多个结果集的映射
     List<ResultMap> resultMaps = mappedStatement.getResultMaps();
     int resultMapCount = resultMaps.size();
     validateResultMapsCount(rsw, resultMapCount);
+
+    // 遍历 ResultMap 集合
     while (rsw != null && resultMapCount > resultSetCount) {
       ResultMap resultMap = resultMaps.get(resultSetCount);
-      // 处理结果集
+
+      // 根据 ResultMap 中定义的映射规则处理 ResultSet，并将映射得到的 Java 对象添加到 multipleResults 集合中保存
       handleResultSet(rsw, resultMap, multipleResults, null);
-      // 获取下一个结果集
+
+      // 获取下一个 ResultSet
       rsw = getNextResultSet(stmt);
+
+      // 清理 nestedResultObjects 集合，这个集合是用来存储中间数据的
       cleanUpAfterHandlingResultSet();
+
+      // 递增 ResultSet 编号
       resultSetCount++;
     }
 
-    // 以下逻辑均与多结果集有关
+    // 以下逻辑均与多结果集有关，根据 ResultSet 的名称处理嵌套映射
     String[] resultSets = mappedStatement.getResultSets();
     if (resultSets != null) {
       while (rsw != null && resultSetCount < resultSets.length) {
+
+        // 获取 nextResultMaps 中的 ResultMapping 对象
         ResultMapping parentMapping = nextResultMaps.get(resultSets[resultSetCount]);
         if (parentMapping != null) {
+
+          // 获取 ResultMapping 中指定的 ResultMap 映射规则
           String nestedResultMapId = parentMapping.getNestedResultMapId();
           ResultMap resultMap = configuration.getResultMap(nestedResultMapId);
+
+          // 进行结果集映射，得到的结果对象会添加到外层结果对象的相应属性中
           handleResultSet(rsw, resultMap, null, parentMapping);
         }
+
+        // 继续获取下一个 ResultSet
         rsw = getNextResultSet(stmt);
         cleanUpAfterHandlingResultSet();
         resultSetCount++;
       }
     }
 
+    // 返回全部映射得到的 Java 对象
     return collapseSingleResultList(multipleResults);
   }
 
@@ -346,13 +369,14 @@ public class DefaultResultSetHandler implements ResultSetHandler {
   //
 
   public void handleRowValues(ResultSetWrapper rsw, ResultMap resultMap, ResultHandler<?> resultHandler, RowBounds rowBounds, ResultMapping parentMapping) throws SQLException {
+    // 包含嵌套映射的处理流程
     if (resultMap.hasNestedResultMaps()) {
       ensureNoRowBounds();
       checkResultHandler();
-      // 处理嵌套映射
       handleRowValuesForNestedResultMap(rsw, resultMap, resultHandler, rowBounds, parentMapping);
-    } else {
-      // 处理简单映射handleRowValuesForSimpleResultMap
+    }
+    // 简单映射的处理
+    else {
       handleRowValuesForSimpleResultMap(rsw, resultMap, resultHandler, rowBounds, parentMapping);
     }
   }
@@ -399,10 +423,10 @@ public class DefaultResultSetHandler implements ResultSetHandler {
 
   private void storeObject(ResultHandler<?> resultHandler, DefaultResultContext<Object> resultContext, Object rowValue, ResultMapping parentMapping, ResultSet rs) throws SQLException {
     if (parentMapping != null) {
-      // 多结果集相关
+      // 嵌套查询或嵌套映射的场景，此时需要将结果对象保存到外层对象对应的属性中
       linkToParents(rs, parentMapping, rowValue);
     } else {
-      // 存储结果
+      // 普通映射(没有嵌套映射)或是嵌套映射中的外层映射的场景，此时需要将结果对象保存到 ResultHandler 中
       callResultHandler(resultHandler, resultContext, rowValue);
     }
   }
@@ -446,18 +470,20 @@ public class DefaultResultSetHandler implements ResultSetHandler {
    */
   private Object getRowValue(ResultSetWrapper rsw, ResultMap resultMap, String columnPrefix) throws SQLException {
     final ResultLoaderMap lazyLoader = new ResultLoaderMap();
-    // 创建实体类对象，比如 Article 对象
+    // 根据 ResultMap 的 type 属性值创建映射的结果对象
     Object rowValue = createResultObject(rsw, resultMap, lazyLoader, columnPrefix);
     if (rowValue != null && !hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
       final MetaObject metaObject = configuration.newMetaObject(rowValue);
       boolean foundValues = this.useConstructorMappings;
-      // 检测是否应该自动映射结果集
+      // 根据 ResultMap 的配置以及全局信息，决定是否自动映射 ResultMap 中未明确映射的列
       if (shouldApplyAutomaticMappings(resultMap, false)) {
         // 进行自动映射
         foundValues = applyAutomaticMappings(rsw, resultMap, metaObject, columnPrefix) || foundValues;
       }
-      // 根据 <resultMap> 节点中配置的映射关系进行映射
+      // 根据 ResultMap 映射规则，将 ResultSet 中的列值与结果对象中的属性值进行映射
       foundValues = applyPropertyMappings(rsw, resultMap, metaObject, lazyLoader, columnPrefix) || foundValues;
+
+      // 如果没有映射任何属性，需要根据全局配置决定如何返回这个结果值，这里不同场景和配置，可能返回完整的结果对象、空结果对象或是 null
       foundValues = lazyLoader.size() > 0 || foundValues;
       rowValue = foundValues || configuration.isReturnInstanceForEmptyRow() ? rowValue : null;
     }
@@ -547,6 +573,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
       // 获取关联查询结果
       return getNestedQueryMappingValue(rs, metaResultObject, propertyMapping, lazyLoader, columnPrefix);
     } else if (propertyMapping.getResultSet() != null) {
+      // 指定了 resultSet 属性，则等待后续结果集解析
       addPendingChildRelation(rs, metaResultObject, propertyMapping);   // TODO is that OK?
       return DEFERRED;
     } else {
@@ -712,7 +739,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
 
       // 如果开启了延迟加载，则为 resultObject 生成代理类
       for (ResultMapping propertyMapping : propertyMappings) {
-        // issue gcode #109 && issue #149
+        // 检测所有 ResultMapping 规则，是否开启了延迟加载特性
         if (propertyMapping.getNestedQueryId() != null && propertyMapping.isLazy()) {
           // 创建代理类，默认使用 Javassist 框架生成代理类。由于实体类通常不会实现接口，所以不能使用 JDK 动态代理 API 为实体类生成代理
           resultObject = configuration.getProxyFactory().createProxy(resultObject, lazyLoader, configuration, objectFactory, constructorArgTypes, constructorArgs);
@@ -921,9 +948,9 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         value = DEFERRED;
       } else {
 
-        // 创建结果加载器
+        // 创建 ResultLoader 结果加载器
         final ResultLoader resultLoader = new ResultLoader(configuration, executor, nestedQuery, nestedQueryParameterObject, targetType, key, nestedBoundSql);
-        // 检测当前属性是否需要延迟加载
+        // 根据是否延迟加载的配置决定 value 的值
         if (propertyMapping.isLazy()) {
           // 添加延迟加载相关的对象到 loaderMap 集合中
           lazyLoader.addLoader(property, metaResultObject, resultLoader);
@@ -987,15 +1014,30 @@ public class DefaultResultSetHandler implements ResultSetHandler {
   //
 
   public ResultMap resolveDiscriminatedResultMap(ResultSet rs, ResultMap resultMap, String columnPrefix) throws SQLException {
+    // 用于维护处理过的 ResultMap 唯一标识
     Set<String> pastDiscriminators = new HashSet<>();
+
+    // 获取 ResultMap 中的 Discriminator 对象，这是通过 <resultMap> 标签中的 <discriminator> 标签解析得到的
     Discriminator discriminator = resultMap.getDiscriminator();
+
     while (discriminator != null) {
+      // 获取当前待映射的记录中 Discriminator 要检测的列的值
       final Object value = getDiscriminatorValue(rs, discriminator, columnPrefix);
+
+      // 根据上述列值确定要使用的 ResultMap 的唯一标识
       final String discriminatedMapId = discriminator.getMapIdFor(String.valueOf(value));
       if (configuration.hasResultMap(discriminatedMapId)) {
+
+        // 从全局配置对象 Configuration 中获取 ResultMap 对象
         resultMap = configuration.getResultMap(discriminatedMapId);
+
+        // 记录当前 Discriminator 对象
         Discriminator lastDiscriminator = discriminator;
+
+        // 获取 ResultMap 对象中的 Discriminator
         discriminator = resultMap.getDiscriminator();
+
+        // 检测 Discriminator 是否出现了环形引用
         if (discriminator == lastDiscriminator || !pastDiscriminators.add(discriminatedMapId)) {
           break;
         }
@@ -1003,6 +1045,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         break;
       }
     }
+    // 返回最终要使用的 ResultMap
     return resultMap;
   }
 
@@ -1061,28 +1104,52 @@ public class DefaultResultSetHandler implements ResultSetHandler {
   private Object getRowValue(ResultSetWrapper rsw, ResultMap resultMap, CacheKey combinedKey, String columnPrefix, Object partialObject) throws SQLException {
     final String resultMapId = resultMap.getId();
     Object rowValue = partialObject;
+
+    // 检测外层对象是否已经存在，如果存在，直接执行嵌套映射的逻辑
     if (rowValue != null) {
       final MetaObject metaObject = configuration.newMetaObject(rowValue);
       putAncestor(rowValue, resultMapId);
       applyNestedResultMappings(rsw, resultMap, metaObject, columnPrefix, combinedKey, false);
       ancestorObjects.remove(resultMapId);
-    } else {
+    }
+
+    // 外层对象不存在，先生成外层映射的对象
+    else {
+      // ResultLoaderMap 与延迟加载相关
       final ResultLoaderMap lazyLoader = new ResultLoaderMap();
+
+      // 创建外层对象
       rowValue = createResultObject(rsw, resultMap, lazyLoader, columnPrefix);
       if (rowValue != null && !hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
+
+        // 创建外层对象关联的 MetaObject 对象
         final MetaObject metaObject = configuration.newMetaObject(rowValue);
         boolean foundValues = this.useConstructorMappings;
+
+        // 自动映射
         if (shouldApplyAutomaticMappings(resultMap, true)) {
+
+          // 自动映射 ResultMap 中未明确映射的列
           foundValues = applyAutomaticMappings(rsw, resultMap, metaObject, columnPrefix) || foundValues;
         }
+
+        // 处理 ResultMap 中明确映射的列
         foundValues = applyPropertyMappings(rsw, resultMap, metaObject, lazyLoader, columnPrefix) || foundValues;
+
+        // 将"部分构造"的外层对象添加到 ancestorObjects 集合中
         putAncestor(rowValue, resultMapId);
+
+        // 处理嵌套映射，其中会从 ancestorObjects 集合中获取外层对象，并将嵌套映射的结果对象设置到外层对象的属性中
         foundValues = applyNestedResultMappings(rsw, resultMap, metaObject, columnPrefix, combinedKey, true) || foundValues;
+
+        // 清理 ancestorObjects 集合，删除外层对象
         ancestorObjects.remove(resultMapId);
         foundValues = lazyLoader.size() > 0 || foundValues;
         rowValue = foundValues || configuration.isReturnInstanceForEmptyRow() ? rowValue : null;
       }
       if (combinedKey != CacheKey.NULL_CACHE_KEY) {
+
+        // 将外层对象记录到 nestedResultObjects 集合中，等待后续使用
         nestedResultObjects.put(combinedKey, rowValue);
       }
     }
