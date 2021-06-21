@@ -72,7 +72,7 @@ public class DefaultParameterHandler implements ParameterHandler {
           // 获取属性名
           String propertyName = parameterMapping.getProperty();
           // 检测 BoundSql 的 additionalParameters 是否包含 propertyName
-          if (boundSql.hasAdditionalParameter(propertyName)) { // issue #448 ask first for additional params
+          if (boundSql.hasAdditionalParameter(propertyName)) {
             value = boundSql.getAdditionalParameter(propertyName);
           } else if (parameterObject == null) {
             value = null;
@@ -86,6 +86,7 @@ public class DefaultParameterHandler implements ParameterHandler {
             // 从用户传入的参数中获取 propertyName 对应的值
             value = metaObject.getValue(propertyName);
           }
+          // 获取 TypeHandler
           TypeHandler typeHandler = parameterMapping.getTypeHandler();
           JdbcType jdbcType = parameterMapping.getJdbcType();
           if (value == null && jdbcType == null) {
@@ -94,6 +95,7 @@ public class DefaultParameterHandler implements ParameterHandler {
           }
           try {
             // 由类型处理器 typeHandler 向 ParameterHandler 设置参数
+            // 底层会调用 PreparedStatement.set*() 方法完成绑定
             typeHandler.setParameter(ps, i + 1, value, jdbcType);
           } catch (TypeException | SQLException e) {
             throw new TypeException("Could not set parameters for mapping: " + parameterMapping + ". Cause: " + e, e);

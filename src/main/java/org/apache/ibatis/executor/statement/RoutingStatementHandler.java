@@ -38,18 +38,22 @@ public class RoutingStatementHandler implements StatementHandler {
 
   public RoutingStatementHandler(Executor executor, MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
 
-    // 根据 StatementType 创建不同的 StatementHandler
+    // 根据 MappedStatement 的配置，生成一个相应的 StatementHandler 对象，并设置到 delegate 字段中维护
     switch (ms.getStatementType()) {
       case STATEMENT:
+        // 创建 SimpleStatementHandler 对象
         delegate = new SimpleStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
         break;
       case PREPARED:
+        // 创建 PreparedStatementHandler 对象
         delegate = new PreparedStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
         break;
       case CALLABLE:
+        // 创建 CallableStatementHandler 对象
         delegate = new CallableStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
         break;
       default:
+        // 抛出异常
         throw new ExecutorException("Unknown statement type: " + ms.getStatementType());
     }
 
