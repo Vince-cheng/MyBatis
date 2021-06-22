@@ -78,9 +78,9 @@ public class CachingExecutor implements Executor {
 
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler) throws SQLException {
-    // 获取 BoundSql
+    // 获取 BoundSql 对象
     BoundSql boundSql = ms.getBoundSql(parameterObject);
-    // 创建 CacheKey
+    // 创建相应的 CacheKey
     CacheKey key = createCacheKey(ms, parameterObject, rowBounds, boundSql);
     // 调用重载方法
     return query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
@@ -95,24 +95,29 @@ public class CachingExecutor implements Executor {
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)
       throws SQLException {
-    // 从 MappedStatement 中获取缓存
+    // 从 MappedStatement 中获取该命名空间使用的二级缓存
     Cache cache = ms.getCache();
-    // 若映射文件中未配置缓存或参照缓存，此时 cache = null
+    // 是否开启了二级缓存功能
     if (cache != null) {
+      // 根据 <select> 标签配置决定是否需要清空二级缓存
       flushCacheIfRequired(ms);
+      // 检测 useCache 配置以及是否使用了 resultHandler 配置
       if (ms.isUseCache() && resultHandler == null) {
+        // 是否包含输出参数
         ensureNoOutParams(ms, boundSql);
         @SuppressWarnings("unchecked")
+        // 查询二级缓存
         List<E> list = (List<E>) tcm.getObject(cache, key);
         if (list == null) {
-          // 若缓存未命中，则调用被装饰类的 query 方法
+          // 二级缓存未命中，通过被装饰的 Executor 对象查询结果对象
           list = delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
-          tcm.putObject(cache, key, list); // issue #578 and #116
+          // 将查询结果放入 TransactionalCache.entriesToAddOnCommit 集合中暂存
+          tcm.putObject(cache, key, list);
         }
         return list;
       }
     }
-    // 调用被装饰类的 query 方法
+    // 如果未开启二级缓存，直接通过被装饰的 Executor 对象查询结果对象
     return delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
   }
 

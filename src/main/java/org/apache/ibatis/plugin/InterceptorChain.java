@@ -28,6 +28,7 @@ public class InterceptorChain {
 
   public Object pluginAll(Object target) {
     for (Interceptor interceptor : interceptors) {
+      // 遍历 interceptors 集合，调用每个 Interceptor 对象的 plugin() 方法
       target = interceptor.plugin(target);
     }
     return target;

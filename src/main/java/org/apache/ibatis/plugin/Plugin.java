@@ -41,13 +41,18 @@ public class Plugin implements InvocationHandler {
   }
 
   public static Object wrap(Object target, Interceptor interceptor) {
+    // 获取自定义 Interceptor 实现类上的 @Signature 注解信息，
+    // 这里的 getSignatureMap() 方法会解析 @Signature 注解，得到要拦截的类以及要拦截的方法集合
     Map<Class<?>, Set<Method>> signatureMap = getSignatureMap(interceptor);
     Class<?> type = target.getClass();
+    // 检查当前传入的 target 对象是否为 @Signature 注解要拦截的类型，如果是的话，就使用 JDK 动态代理的方式创建代理对象
     Class<?>[] interfaces = getAllInterfaces(type, signatureMap);
     if (interfaces.length > 0) {
+      // 创建 JDK 动态代理
       return Proxy.newProxyInstance(
           type.getClassLoader(),
           interfaces,
+          // 这里使用的 InvocationHandler 就是 Plugin 本身
           new Plugin(target, interceptor, signatureMap));
     }
     return target;
@@ -56,10 +61,13 @@ public class Plugin implements InvocationHandler {
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     try {
+      // 获取当前待执行方法所属的类
       Set<Method> methods = signatureMap.get(method.getDeclaringClass());
+      // 如果当前方法需要被代理，则执行 intercept() 方法进行拦截处理
       if (methods != null && methods.contains(method)) {
         return interceptor.intercept(new Invocation(target, method, args));
       }
+      // 如果当前方法不需要被代理，则调用 target 对象的相应方法
       return method.invoke(target, args);
     } catch (Exception e) {
       throw ExceptionUtil.unwrapThrowable(e);

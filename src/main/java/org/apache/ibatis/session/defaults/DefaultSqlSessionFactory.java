@@ -90,13 +90,18 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
   private SqlSession openSessionFromDataSource(ExecutorType execType, TransactionIsolationLevel level, boolean autoCommit) {
     Transaction tx = null;
     try {
+      // 获取 Environment 对象
       final Environment environment = configuration.getEnvironment();
+      // 获取 TransactionFactory 对象
       final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
+      // 从数据源中创建 Transaction
       tx = transactionFactory.newTransaction(environment.getDataSource(), level, autoCommit);
+      // 根据配置创建 Executor 对象
       final Executor executor = configuration.newExecutor(tx, execType);
+      // 在 Executor 的基础上创建 DefaultSqlSession 对象
       return new DefaultSqlSession(configuration, executor, autoCommit);
     } catch (Exception e) {
-      closeTransaction(tx); // may have fetched a connection so lets call close()
+      closeTransaction(tx);
       throw ExceptionFactory.wrapException("Error opening session.  Cause: " + e, e);
     } finally {
       ErrorContext.instance().reset();
@@ -107,16 +112,19 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
     try {
       boolean autoCommit;
       try {
+        // 获取事务提交方式
         autoCommit = connection.getAutoCommit();
       } catch (SQLException e) {
-        // Failover to true, as most poor drivers
-        // or databases won't support transactions
         autoCommit = true;
       }
+      // 获取 Environment 对象、TransactionFactory
       final Environment environment = configuration.getEnvironment();
       final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
+      // 通过 Connection 对象创建 Transaction
       final Transaction tx = transactionFactory.newTransaction(connection);
+      // 创建 Executor 对象
       final Executor executor = configuration.newExecutor(tx, execType);
+      // 创建 DefaultSqlSession 对象
       return new DefaultSqlSession(configuration, executor, autoCommit);
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error opening session.  Cause: " + e, e);

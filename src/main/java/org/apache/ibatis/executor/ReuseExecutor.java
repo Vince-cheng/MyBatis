@@ -70,9 +70,11 @@ public class ReuseExecutor extends BaseExecutor {
 
   @Override
   public List<BatchResult> doFlushStatements(boolean isRollback) {
+    // 关闭 statementMap 集合中缓存的全部 Statement 对象
     for (Statement stmt : statementMap.values()) {
       closeStatement(stmt);
     }
+    // 清空 statementMap 集合
     statementMap.clear();
     return Collections.emptyList();
   }

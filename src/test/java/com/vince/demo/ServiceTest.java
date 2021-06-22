@@ -36,6 +36,13 @@ public class ServiceTest {
   }
 
   @Test
+  public void testPlugin(){
+    Customer customer = customerService.find(1L);
+    System.out.println(customer);
+  }
+
+
+  @Test
   public void testShop() {
     // 创建一个用户
     long customerId = customerService.register("vince", "18827052946");

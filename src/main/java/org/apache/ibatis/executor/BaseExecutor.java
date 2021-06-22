@@ -143,33 +143,43 @@ public abstract class BaseExecutor implements Executor {
     if (closed) {
       throw new ExecutorException("Executor was closed.");
     }
+    // 非嵌套查询，并且 <select> 标签配置的 flushCache 属性为 true 时，才会清空一级缓存
+    // 注意：flushCache 配置项会影响一级缓存中结果对象存活时长
     if (queryStack == 0 && ms.isFlushCacheRequired()) {
       clearLocalCache();
     }
     List<E> list;
     try {
+      // 增加查询层数
       queryStack++;
       // 从一级缓存中获取缓存项
       list = resultHandler == null ? (List<E>) localCache.getObject(key) : null;
       if (list != null) {
-        // 存储过程相关处理逻辑
+        //  对存储过程出参的处理：如果命中一级缓存，则获取缓存中保存的输出参数，然后记录到用户传入的实参对象中
         handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);
-      } else {
-        // 一级缓存未命中，则从数据库中查询
+      }
+      // 一级缓存未命中，则从数据库中查询
+      else {
+        // queryFromDatabase() 方法内部首先会在 localCache 中设置一个占位符，然后调用 doQuery() 方法完成数据库查询，
+        //并得到映射后的结果对象, doQuery() 方法是一个抽象方法，由 BaseExecutor 的子类具体实现
         list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql);
       }
     } finally {
+      // 当前查询完成，查询层数减少
       queryStack--;
     }
+    // 完成嵌套查询的填充
     if (queryStack == 0) {
       // 从一级缓存中延迟加载嵌套查询结果
       for (DeferredLoad deferredLoad : deferredLoads) {
         deferredLoad.load();
       }
       // issue #601
+      // 清空 deferredLoads 集合
       deferredLoads.clear();
       if (configuration.getLocalCacheScope() == LocalCacheScope.STATEMENT) {
         // issue #482
+        // 根据配置决定是否清空 localCache
         clearLocalCache();
       }
     }

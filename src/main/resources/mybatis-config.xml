@@ -10,6 +10,7 @@
     <!-- 全局配置信息 -->
     <setting name="cacheEnabled" value="true"/>
   </settings>
+
   <typeAliases>
     <!-- 配置别名信息，在映射配置文件中可以直接使用Customer这个别名
         代替com.vince.demo.domain.Customer这个类 -->
@@ -19,6 +20,11 @@
     <typeAlias type="com.vince.demo.domain.OrderItem" alias="OrderItem"/>
     <typeAlias type="com.vince.demo.domain.Product" alias="Product"/>
   </typeAliases>
+  <plugins>
+    <plugin interceptor="com.vince.mybatis.DemoPlugin">
+      <property name="logLevel" value="1"/>
+    </plugin>
+  </plugins>
   <!-- 环境配置，可以配置多个环境 -->
   <environments default="prod">
     <!--
